@@ -3,6 +3,8 @@ package com.murat.app.ws.service.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -13,14 +15,17 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.murat.app.ws.io.entity.UserEntity;
 import com.murat.app.ws.io.repo.UserReposity;
 import com.murat.app.ws.service.UserService;
+import com.murat.app.ws.shared.dto.AddressDto;
 import com.murat.app.ws.shared.dto.UserDto;
 import com.murat.app.ws.shared.util.Utils;
 
 @Service
+@Transactional
 public class UserServiceImpl implements UserService {
 
 	@Autowired
@@ -38,8 +43,16 @@ public class UserServiceImpl implements UserService {
 		if(isUserRecorded!=null)
 			throw new RuntimeException("Same Record Already Exist");
 		
-		UserEntity userEntity=new UserEntity();
-		BeanUtils.copyProperties(user, userEntity);
+		for(int i=0;i<user.getAddresses().size();i++){
+			AddressDto address=user.getAddresses().get(i);
+			address.setUserDetails(user);
+			address.setAddressId(utils.generateAddressId());
+			user.getAddresses().set(i, address);
+		}
+		
+		ModelMapper modelMapper=new ModelMapper();
+		UserEntity userEntity=modelMapper.map(user,UserEntity.class);
+		//BeanUtils.copyProperties(user, userEntity);
 		
 		String generatedUserId=utils.generateUserId();
 		userEntity.setUserId(generatedUserId);
@@ -47,8 +60,8 @@ public class UserServiceImpl implements UserService {
 		
 		UserEntity storedUserDetails = userReposity.save(userEntity);
 		
-		UserDto returnValue=new UserDto();
-		BeanUtils.copyProperties(storedUserDetails, returnValue);
+		//BeanUtils.copyProperties(storedUserDetails, returnValue);
+		UserDto returnValue=modelMapper.map(storedUserDetails,UserDto.class);
 		return returnValue;
 	}
 

@@ -1,8 +1,13 @@
 package com.murat.app.ws.ui.controller;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -16,11 +21,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.murat.app.ws.service.AddressService;
 import com.murat.app.ws.service.UserService;
+import com.murat.app.ws.shared.dto.AddressDto;
 import com.murat.app.ws.shared.dto.UserDto;
 import com.murat.app.ws.shared.util.Utils.OperationNamesEnum;
 import com.murat.app.ws.shared.util.Utils.OperationStatusEnum;
 import com.murat.app.ws.ui.model.request.UserDetailsRequestModel;
+import com.murat.app.ws.ui.model.response.AddressRest;
 import com.murat.app.ws.ui.model.response.OperationStatusModel;
 import com.murat.app.ws.ui.model.response.UserRest;
 
@@ -28,9 +36,15 @@ import com.murat.app.ws.ui.model.response.UserRest;
 @RequestMapping("/users")
 public class UserController {
 
+	Logger log = LoggerFactory.getLogger(this.getClass());
 	@Autowired
 	UserService userService;
 	
+	@Autowired
+	AddressService addressService;
+	
+	@Autowired
+	ModelMapper modelMapper;
 	
 	@GetMapping(path="/{userId}",
 			produces={MediaType.APPLICATION_XML_VALUE,MediaType.APPLICATION_JSON_VALUE}
@@ -49,12 +63,18 @@ public class UserController {
 			)
 	public UserRest createUser(@RequestBody UserDetailsRequestModel userDetails){
 		
-		UserDto userDto=new UserDto();
-		BeanUtils.copyProperties(userDetails, userDto);
+		log.debug("Create User Method.");
+		//UserDto userDto=new UserDto();
+		//BeanUtils.copyProperties(userDetails, userDto);
+		
+		UserDto userDto=modelMapper.map(userDetails, UserDto.class);
 		
 		UserDto createdUser=userService.createUser(userDto);
-		UserRest returnValue=new UserRest();
-		BeanUtils.copyProperties(createdUser, returnValue);
+		
+		//UserRest returnValue=new UserRest();
+		UserRest returnValue=modelMapper.map(createdUser, UserRest.class);
+		//BeanUtils.copyProperties(createdUser, returnValue);
+		
 		return returnValue;
 	}
 	
@@ -101,4 +121,30 @@ public class UserController {
 		}
 		return returnValues;
 	}
+	
+	@GetMapping(path="/{userId}/addresses",
+			produces={MediaType.APPLICATION_XML_VALUE,MediaType.APPLICATION_JSON_VALUE}
+	)//Bir kullanıcya ait olan adresler /users/userıdjasdkas/addresses
+	public List<AddressRest> getUserAddresses(@PathVariable String userId)
+	{
+		List<AddressRest> returnValue=new ArrayList<>();
+		List<AddressDto> addressDto=addressService.getUserAddresses(userId);
+		if(addressDto!=null && !addressDto.isEmpty()){
+			Type listType = new TypeToken<List<AddressRest>>() {}.getType();
+			returnValue=modelMapper.map(addressDto, listType);
+		}
+		
+		return returnValue;
+	}
+	
+	@GetMapping(path="/address/{addressId}",
+			produces={MediaType.APPLICATION_XML_VALUE,MediaType.APPLICATION_JSON_VALUE}
+	)//Bir adrese ait bilgiler
+	public AddressRest getAddres(@PathVariable String addressId)
+	{
+		AddressDto adressDto = addressService.getAddress(addressId);
+		AddressRest returnValue=new ModelMapper().map(adressDto, AddressRest.class);
+		return returnValue;
+	}
+	
 }

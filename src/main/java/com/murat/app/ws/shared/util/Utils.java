@@ -12,6 +12,11 @@ public class Utils {
 		return generatedUserId.toString();
 	}
 	
+	public String generateAddressId(){
+		UUID generatedAddressId = UUID.randomUUID();
+		return generatedAddressId.toString();
+	}
+	
 	public enum OperationNamesEnum{
 		DELETE
 	}
